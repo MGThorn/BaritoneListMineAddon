@@ -1,4 +1,4 @@
-package net.MGThorn.baritone_listmine;
+package net.MGThorn.baritonelistmine;
 
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
