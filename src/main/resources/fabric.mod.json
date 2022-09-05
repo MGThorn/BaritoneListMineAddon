@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "id": "baritone_listmine",
+  "id": "baritonelistmine",
   "version": "${version}",
 
   "name": "BaritoneListMineAddon",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "description": "Addon for Baritone that enables mining via a list",
   "authors": [
     "MGThorn"
   ],
@@ -19,11 +19,13 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.MGThorn.baritone_listmine.main"
+      "net.MGThorn.baritonelistmine.BaritoneListMine"
     ]
   },
   "mixins": [
-    "modid.mixins.json"
+    "baritonelistmine.mixins.json",
+    "baritone.mixins.json"
+
   ],
 
   "depends": {

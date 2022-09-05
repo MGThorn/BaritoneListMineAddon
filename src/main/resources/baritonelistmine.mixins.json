@@ -1,14 +1,18 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "net.MGThorn.baritonelistmine.BaritoneListMine",
+  "package": "net.MGThorn.baritonelistmine.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
   ],
   "client": [
-    "ExampleMixin"
+    "ExampleMixin",
+    "TitleScreenMixin",
+    "GameMenuScreenMixin"
+
   ],
   "injectors": {
     "defaultRequire": 1
   }
 }
+
