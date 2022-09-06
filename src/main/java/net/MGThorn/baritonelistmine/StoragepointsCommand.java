@@ -6,6 +6,7 @@
 package net.MGThorn.baritonelistmine;
 
 import baritone.Baritone;
+import baritone.api.BaritoneAPI;
 import baritone.api.IBaritone;
 import baritone.api.cache.IWaypoint;
 import baritone.api.cache.IWaypointCollection;
@@ -22,6 +23,7 @@ import baritone.api.command.exception.CommandInvalidStateException;
 import baritone.api.command.exception.CommandInvalidTypeException;
 import baritone.api.command.helpers.Paginator;
 import baritone.api.command.helpers.TabCompleteHelper;
+import baritone.api.pathing.goals.Goal;
 import baritone.api.pathing.goals.GoalBlock;
 import baritone.api.utils.BetterBlockPos;
 
@@ -56,7 +58,7 @@ public class StoragepointsCommand extends Command {
     }
 
     @Override
-    public void execute(String s, IArgConsumer args){
+    public void execute(String label, IArgConsumer args){
         Action action = args.hasAny() ? Action.getByName(args.getString()) : Action.LIST;
         if (action == null) {
             try {
@@ -87,9 +89,8 @@ public class StoragepointsCommand extends Command {
                             String.format(
                                     "%s%s %s %s @ %d",
                                     FORCE_COMMAND_PREFIX,
-
                                     //TODO need to find fix here
-
+                                    label,
                                     _action.names[0],
                                     waypoint.getTag().getName(),
                                     waypoint.getCreationTimestamp()
@@ -101,7 +102,7 @@ public class StoragepointsCommand extends Command {
                 toComponent.apply(waypoint, action == Action.LIST ? Action.INFO : action);
 
         if (action == Action.LIST) {
-            IWaypoint.Tag tag = args.hasAny() ? IWaypoint.Tag.getByName(args.peekString()) : null;
+            Tag tag = args.hasAny() ? Tag.getByName(args.peekString()) : null;
             if (tag != null) {
                 args.get();
             }
@@ -123,7 +124,7 @@ public class StoragepointsCommand extends Command {
                         String.format(
                                 "%s%s %s%s",
                                 FORCE_COMMAND_PREFIX,
-                                //label,
+                                label,
                                 //TODO need to find fix here : hints same fix as line 91
                                 action.names[0],
                                 tag != null ? " " + tag.getName() : ""
@@ -143,9 +144,9 @@ public class StoragepointsCommand extends Command {
             }
         }
         else if (action == Action.SAVE) {
-            IWaypoint.Tag tag = args.hasAny() ? IWaypoint.Tag.getByName(args.peekString()) : null;
+            Tag tag = args.hasAny() ? Tag.getByName(args.peekString()) : null;
             if (tag == null) {
-                tag = IWaypoint.Tag.USER;
+                tag = Tag.USER;
             } else {
                 args.get();
             }
@@ -161,6 +162,181 @@ public class StoragepointsCommand extends Command {
             component.append(toComponent.apply(waypoint, Action.INFO));
             logDirect(component);
         }
+        else if (action == Action.CLEAR) {
+            args.requireMax(1);
+            Tag tag = Tag.getByName(args.getString());
+            IWaypoint[] waypoints = ForWaypoints.getWaypointsByTag(this.baritone, tag);
+            for (IWaypoint waypoint : waypoints) {
+                ForWaypoints.waypoints(this.baritone).removeWaypoint(waypoint);
+            }
+            deletedStoragepoints.computeIfAbsent(baritone.getWorldProvider().getCurrentWorld(), k -> new ArrayList<>()).addAll(Arrays.<IWaypoint>asList(waypoints));
+            MutableText textComponent = Text.literal(String.format("Cleared %d waypoints, click to restore them", waypoints.length));
+            textComponent.setStyle(textComponent.getStyle().withClickEvent(new ClickEvent(
+                    ClickEvent.Action.RUN_COMMAND,
+                    String.format(
+                            "%s%s restore @ %s",
+                            FORCE_COMMAND_PREFIX,
+                            label,
+                            Stream.of(waypoints).map(wp -> Long.toString(wp.getCreationTimestamp())).collect(Collectors.joining(" "))
+                    )
+            )));
+            logDirect(textComponent);
+        }
+        else if (action == Action.RESTORE) {
+            List<IWaypoint> waypoints = new ArrayList<>();
+            List<IWaypoint> deletedWaypoints = this.deletedStoragepoints.getOrDefault(baritone.getWorldProvider().getCurrentWorld(), Collections.emptyList());
+            if (args.peekString().equals("@")) {
+                args.get();
+                // no args.requireMin(1) because if the user clears an empty tag there is nothing to restore
+                while (args.hasAny()) {
+                    long timestamp = args.getAs(Long.class);
+                    for (IWaypoint waypoint : deletedWaypoints) {
+                        if (waypoint.getCreationTimestamp() == timestamp) {
+                            waypoints.add(waypoint);
+                            break;
+                        }
+                    }
+                }
+            } else {
+                args.requireExactly(1);
+                int size = deletedWaypoints.size();
+                int amount = Math.min(size, args.getAs(Integer.class));
+                waypoints = new ArrayList<>(deletedWaypoints.subList(size - amount, size));
+            }
+            waypoints.forEach(ForWaypoints.waypoints(this.baritone)::addWaypoint);
+            deletedWaypoints.removeIf(waypoints::contains);
+            logDirect(String.format("Restored %d waypoints", waypoints.size()));
+        } else {
+            IWaypoint[] waypoints = args.getDatatypeFor(ForWaypoints.INSTANCE);
+            IWaypoint waypoint = null;
+            if (args.hasAny() && args.peekString().equals("@")) {
+                args.requireExactly(2);
+                args.get();
+                long timestamp = args.getAs(Long.class);
+                for (IWaypoint iWaypoint : waypoints) {
+                    if (iWaypoint.getCreationTimestamp() == timestamp) {
+                        waypoint = iWaypoint;
+                        break;
+                    }
+                }
+                if (waypoint == null) {
+                    try {
+                        throw new CommandInvalidStateException("Timestamp was specified but no waypoint was found");
+                    } catch (CommandInvalidStateException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else {
+                switch (waypoints.length) {
+                    case 0:
+                        try {
+                            throw new CommandInvalidStateException("No waypoints found");
+                        } catch (CommandInvalidStateException e) {
+                            e.printStackTrace();
+                        }
+                    case 1:
+                        waypoint = waypoints[0];
+                        break;
+                    default:
+                        break;
+                }
+            }
+            if (waypoint == null) {
+                args.requireMax(1);
+                Paginator.paginate(
+                        args,
+                        waypoints,
+                        () -> logDirect("Multiple waypoints were found:"),
+                        transform,
+                        String.format(
+                                "%s%s %s %s",
+                                FORCE_COMMAND_PREFIX,
+                                label,
+                                action.names[0],
+                                args.consumedString()
+                        )
+                );
+            } else {
+                if (action == Action.INFO) {
+                    logDirect(transform.apply(waypoint));
+                    logDirect(String.format("Position: %s", waypoint.getLocation()));
+                    MutableText deleteComponent = Text.literal("Click to delete this waypoint");
+                    deleteComponent.setStyle(deleteComponent.getStyle().withClickEvent(new ClickEvent(
+                            ClickEvent.Action.RUN_COMMAND,
+                            String.format(
+                                    "%s%s delete %s @ %d",
+                                    FORCE_COMMAND_PREFIX,
+                                    label,
+                                    waypoint.getTag().getName(),
+                                    waypoint.getCreationTimestamp()
+                            )
+                    )));
+                    MutableText goalComponent = Text.literal("Click to set goal to this waypoint");
+                    goalComponent.setStyle(goalComponent.getStyle().withClickEvent(new ClickEvent(
+                            ClickEvent.Action.RUN_COMMAND,
+                            String.format(
+                                    "%s%s goal %s @ %d",
+                                    FORCE_COMMAND_PREFIX,
+                                    label,
+                                    waypoint.getTag().getName(),
+                                    waypoint.getCreationTimestamp()
+                            )
+                    )));
+                    MutableText recreateComponent = Text.literal("Click to show a command to recreate this waypoint");
+                    recreateComponent.setStyle(recreateComponent.getStyle().withClickEvent(new ClickEvent(
+                            ClickEvent.Action.SUGGEST_COMMAND,
+                            String.format(
+                                    "%s%s save %s %s %s %s %s",
+
+                                    BaritoneAPI.getSettings().prefix.value,// This uses the normal prefix because it is run by the user.
+
+                                    label,
+                                    waypoint.getTag().getName(),
+                                    waypoint.getName(),
+                                    waypoint.getLocation().x,
+                                    waypoint.getLocation().y,
+                                    waypoint.getLocation().z
+                            )
+                    )));
+                    MutableText backComponent = Text.literal("Click to return to the waypoints list");
+                    backComponent.setStyle(backComponent.getStyle().withClickEvent(new ClickEvent(
+                            ClickEvent.Action.RUN_COMMAND,
+                            String.format(
+                                    "%s%s list",
+                                    FORCE_COMMAND_PREFIX,
+                                    label
+                            )
+                    )));
+                    logDirect(deleteComponent);
+                    logDirect(goalComponent);
+                    logDirect(recreateComponent);
+                    logDirect(backComponent);
+                } else if (action == Action.DELETE) {
+                    ForWaypoints.waypoints(this.baritone).removeWaypoint(waypoint);
+                    deletedStoragepoints.computeIfAbsent(baritone.getWorldProvider().getCurrentWorld(), k -> new ArrayList<>()).add(waypoint);
+                    MutableText textComponent = Text.literal("That waypoint has successfully been deleted, click to restore it");
+                    textComponent.setStyle(textComponent.getStyle().withClickEvent(new ClickEvent(
+                            ClickEvent.Action.RUN_COMMAND,
+                            String.format(
+                                    "%s%s restore @ %s",
+                                    FORCE_COMMAND_PREFIX,
+                                    label,
+                                    waypoint.getCreationTimestamp()
+                            )
+                    )));
+                    logDirect(textComponent);
+                } else if (action == Action.GOAL) {
+                    Goal goal = new GoalBlock(waypoint.getLocation());
+                    baritone.getCustomGoalProcess().setGoal(goal);
+                    logDirect(String.format("Goal: %s", goal));
+                } else if (action == Action.GOTO) {
+                    Goal goal = new GoalBlock(waypoint.getLocation());
+                    baritone.getCustomGoalProcess().setGoalAndPath(goal);
+                    logDirect(String.format("Going to: %s", goal));
+                }
+            }
+        }
+        
 
 
         LOGGER.info("cmd sp used");
