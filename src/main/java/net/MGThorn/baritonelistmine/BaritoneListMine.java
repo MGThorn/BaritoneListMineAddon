@@ -3,9 +3,9 @@ package net.MGThorn.baritonelistmine;
 import baritone.api.BaritoneAPI;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.util.registry.Registry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import baritone.api.command.registry.Registry;
 
 public class BaritoneListMine implements ModInitializer {
 	// This logger is used to write text to the console and the log file.
@@ -26,7 +26,16 @@ public class BaritoneListMine implements ModInitializer {
 
 
 		//adding the command using BaritoneAPI
+		//StoragepointsCommand
 		StoragepointsCommand sp = new StoragepointsCommand(BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().getBaritone());
 		BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().getRegistry().register(sp);
+		//StoreCommand
+		StoreCommand s = new StoreCommand(BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().getBaritone());
+		BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().getRegistry().register(s);
+		//Listmine
+		ListMineCommand lm = new ListMineCommand(BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().getBaritone());
+		BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().getRegistry().register(lm);
+
+
 	}
 }

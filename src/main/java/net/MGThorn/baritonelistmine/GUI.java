@@ -16,6 +16,9 @@ import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.StringUtils;
+import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
+import net.minecraft.block.Block;
+import net.minecraft.util.registry.Registry;
 
 import static baritone.api.command.IBaritoneChatControl.FORCE_COMMAND_PREFIX;
 import static net.MGThorn.baritonelistmine.BaritoneListMine.LOGGER;
@@ -89,113 +92,12 @@ public class GUI extends GuiBase
         {
             if(type == ButtonListener.Type.PICK_LIST){
                 BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().execute("pause");
+                //LOGGER.info(Registry.BLOCK.stream().findFirst().toString())
+                //output : Optional[Block{minecraft:air}]
 
             }else if(type == ButtonListener.Type.LOAD_LIST){
-
-                StoragepointsCommand sp = new StoragepointsCommand(BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().getBaritone());
-                BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager().getRegistry().register(sp);
-
-                /*BaritoneAPI.getProvider().getPrimaryBaritone().getGameEventHandler().registerEventListener(new IGameEventListener() {
-                    private static final Settings settings = BaritoneAPI.getSettings();
-                    @Override
-                    public void onTick(TickEvent tickEvent) {
-
-                    }
-
-                    @Override
-                    public void onPlayerUpdate(PlayerUpdateEvent playerUpdateEvent) {
-
-                    }
-
-                    @Override
-                    public void onSendChatMessage(ChatEvent event) {
-                        String msg = event.getMessage();
-                        String prefix = settings.prefix.value;
-                        boolean forceRun = msg.startsWith(FORCE_COMMAND_PREFIX);
-                        if ((settings.prefixControl.value && msg.startsWith(prefix)) || forceRun) {
-                            event.cancel();
-                            String commandStr = msg.substring(forceRun ? FORCE_COMMAND_PREFIX.length() : prefix.length());
-                            if (!runCommand(commandStr) && !commandStr.trim().isEmpty()) {
-                                new CommandNotFoundException("falsch");
-                            }
-                        } else if ((settings.chatControl.value || settings.chatControlAnyway.value) && runCommand(msg)) {
-                            event.cancel();
-                        }
-                    }
-                    public boolean runCommand(String msg) {
-                        if (msg.trim().equalsIgnoreCase("sp")) {
-                            LOGGER.info("Hello Fabric world!");
-                            return true;
-                        }
-                        if (msg.isEmpty()) {
-                            return this.runCommand("help");
-                        }
-
-                        return false;
-
-                    }
-
-                    @Override
-                    public void onPreTabComplete(TabCompleteEvent tabCompleteEvent) {
-
-                    }
-
-                    @Override
-                    public void onChunkEvent(ChunkEvent chunkEvent) {
-
-                    }
-
-                    @Override
-                    public void onRenderPass(RenderEvent renderEvent) {
-
-                    }
-
-                    @Override
-                    public void onWorldEvent(WorldEvent worldEvent) {
-
-                    }
-
-                    @Override
-                    public void onSendPacket(PacketEvent packetEvent) {
-
-                    }
-
-                    @Override
-                    public void onReceivePacket(PacketEvent packetEvent) {
-
-                    }
-
-                    @Override
-                    public void onPlayerRotationMove(RotationMoveEvent rotationMoveEvent) {
-
-                    }
-
-                    @Override
-                    public void onPlayerSprintState(SprintStateEvent sprintStateEvent) {
-
-                    }
-
-                    @Override
-                    public void onBlockInteract(BlockInteractEvent blockInteractEvent) {
-
-                    }
-
-                    @Override
-                    public void onPlayerDeath() {
-
-                    }
-
-                    @Override
-                    public void onPathEvent(PathEvent pathEvent) {
-
-                    }
-                });
-
-                 */
-
-
-
                 //BaritoneAPI.getProvider().getPrimaryBaritone().getInputOverrideHandler().onSendChatMessage(new ChatEvent("pause"));
+
             }
 
 
